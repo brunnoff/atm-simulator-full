@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='websocket.js') }}"></script>
+</head>
+<body>
+    <h1>Bem-vindo, {{ current_user.username }}</h1>
+    <nav>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </nav>
+    <h2>Operações</h2>
+    <ul>
+        <li><a href="#">Consultar Saldo</a></li>
+        <li><a href="#">Depositar</a></li>
+        <li><a href="#">Sacar</a></li>
+    </ul>
+    <h2>Notificações em Tempo Real</h2>
+    <div id="notifications"></div>
+</body>
+</html>

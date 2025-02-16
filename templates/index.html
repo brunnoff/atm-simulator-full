@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Página Inicial</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Bem-vindo ao Simulador de ATM</h1>
+    <nav>
+        <a href="{{ url_for('auth.login') }}">Login</a> |
+        <a href="{{ url_for('auth.register') }}">Registrar</a>
+    </nav>
+</body>
+</html>
