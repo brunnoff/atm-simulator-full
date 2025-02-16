@@ -2,14 +2,22 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Página Inicial</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Bem-vindo ao Simulador de ATM</h1>
-    <nav>
-        <a href="{{ url_for('auth.login') }}">Login</a> |
-        <a href="{{ url_for('auth.register') }}">Registrar</a>
-    </nav>
+    <div class="container">
+        <header>
+            <h1>Bem-vindo ao Simulador de ATM</h1>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('auth.login') }}" class="nav-link">Login</a></li>
+                <li><a href="{{ url_for('auth.register') }}" class="nav-link">Registrar</a></li>
+            </ul>
+        </nav>
+    </div>
 </body>
 </html>

@@ -1,20 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Bem-vindo, {{ session.username }}!</h1>
+    <div class="container">
+        <header>
+            <h1>Bem-vindo, {{ session.username }}!</h1>
+        </header>
 
-    <div id="operations">
-        <button id="consultar-saldo">Consultar Saldo</button>
-        <button id="depositar">Depositar</button>
-        <button id="sacar">Sacar</button>
-    </div>
-
-    <div id="resultado">
+        <div id="operations">
+            <button id="consultar-saldo" class="operation-btn">Consultar Saldo</button>
+            <button id="depositar" class="operation-btn">Depositar</button>
+            <button id="sacar" class="operation-btn">Sacar</button>
         </div>
+
+        <div id="resultado" class="resultado"></div>
+    </div>
 
     <script>
         const consultarSaldoBtn = document.getElementById('consultar-saldo');
@@ -25,17 +30,13 @@
         consultarSaldoBtn.addEventListener('click', () => {
             fetch('/consultar_saldo')
                 .then(response => {
-                    if (!response.ok) { // Verifica se a resposta não está OK (status 2xx)
+                    if (!response.ok) {
                         throw new Error(`Erro na requisição: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    if (data.success) {
-                        resultadoDiv.textContent = `Saldo: R$ ${data.saldo}`;
-                    } else {
-                        resultadoDiv.textContent = data.message || 'Erro ao consultar saldo.'; // Exibe a mensagem de erro do backend
-                    }
+                    resultadoDiv.textContent = data.success ? `Saldo: R$ ${data.saldo}` : data.message || 'Erro ao consultar saldo.';
                 })
                 .catch(error => {
                     console.error('Erro na requisição:', error);
@@ -48,28 +49,22 @@
             if (valor) {
                 fetch('/depositar', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ valor: parseFloat(valor) })
                 })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Erro na requisição: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            resultadoDiv.textContent = `Depósito realizado. Novo saldo: R$ ${data.saldo}`;
-                        } else {
-                            resultadoDiv.textContent = data.message || 'Erro ao depositar.';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erro na requisição:', error);
-                        resultadoDiv.textContent = 'Erro ao depositar.';
-                    });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro na requisição: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultadoDiv.textContent = data.success ? `Depósito realizado. Novo saldo: R$ ${data.saldo}` : data.message || 'Erro ao depositar.';
+                })
+                .catch(error => {
+                    console.error('Erro na requisição:', error);
+                    resultadoDiv.textContent = 'Erro ao depositar.';
+                });
             }
         });
 
@@ -78,28 +73,22 @@
             if (valor) {
                 fetch('/sacar', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ valor: parseFloat(valor) })
                 })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Erro na requisição: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            resultadoDiv.textContent = `Saque realizado. Novo saldo: R$ ${data.saldo}`;
-                        } else {
-                            resultadoDiv.textContent = data.message || 'Erro ao sacar.';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erro na requisição:', error);
-                        resultadoDiv.textContent = 'Erro ao sacar.';
-                    });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro na requisição: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultadoDiv.textContent = data.success ? `Saque realizado. Novo saldo: R$ ${data.saldo}` : data.message || 'Erro ao sacar.';
+                })
+                .catch(error => {
+                    console.error('Erro na requisição:', error);
+                    resultadoDiv.textContent = 'Erro ao sacar.';
+                });
             }
         });
     </script>
