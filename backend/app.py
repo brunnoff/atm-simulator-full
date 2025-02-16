@@ -1,3 +1,5 @@
+import os
+import secrets
 from flask import Flask, render_template
 from flask_login import LoginManager, login_required, current_user
 from flask_socketio import SocketIO, send
@@ -6,7 +8,13 @@ from .models import User
 from .database import init_db, get_user_by_id
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
-app.config['SECRET_KEY'] = 'sua_chave_secreta'
+
+# Gere uma chave secreta segura!
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_urlsafe(32)
+
+# Configuração do banco de dados
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+
 app.register_blueprint(auth)
 
 login_manager = LoginManager()
@@ -18,9 +26,7 @@ socketio = SocketIO(app)
 @login_manager.user_loader
 def load_user(user_id):
     user = get_user_by_id(user_id)
-    if user:
-        return User(user[0], user[1], user[2])
-    return None
+    return user  # Simplificado e corrigido
 
 @app.route('/')
 def index():
@@ -37,5 +43,5 @@ def handle_connect():
         send(f'{current_user.username} conectado.', broadcast=True)
 
 if __name__ == '__main__':
-    init_db()
-    socketio.run(app)
+    init_db(app)  # Passe o app para init_db
+    socketio.run(app, debug=True)  # debug=True para hot-reload
