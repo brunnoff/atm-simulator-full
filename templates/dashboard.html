@@ -1,96 +1,27 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>ATM Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Bem-vindo, {{ session.username }}!</h1>
-        </header>
-
-        <div id="operations">
-            <button id="consultar-saldo" class="operation-btn">Consultar Saldo</button>
-            <button id="depositar" class="operation-btn">Depositar</button>
-            <button id="sacar" class="operation-btn">Sacar</button>
-        </div>
-
-        <div id="resultado" class="resultado"></div>
+    <h1>Bem-vindo, {{ user.username }}!</h1>
+    <p>Saldo atual: R$ {{ user.account.balance }}</p>
+    <div class="actions">
+        <form action="/withdraw" method="post">
+            <label for="amount">Valor para saque:</label>
+            <input type="number" step="0.01" name="amount" required>
+            <button type="submit">Sacar</button>
+        </form>
+        <form action="/deposit" method="post">
+            <label for="amount">Valor para depósito:</label>
+            <input type="number" step="0.01" name="amount" required>
+            <button type="submit">Depositar</button>
+        </form>
     </div>
-
-    <script>
-        const consultarSaldoBtn = document.getElementById('consultar-saldo');
-        const depositarBtn = document.getElementById('depositar');
-        const sacarBtn = document.getElementById('sacar');
-        const resultadoDiv = document.getElementById('resultado');
-
-        consultarSaldoBtn.addEventListener('click', () => {
-            fetch('/consultar_saldo')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erro na requisição: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    resultadoDiv.textContent = data.success ? `Saldo: R$ ${data.saldo}` : data.message || 'Erro ao consultar saldo.';
-                })
-                .catch(error => {
-                    console.error('Erro na requisição:', error);
-                    resultadoDiv.textContent = 'Erro ao consultar saldo.';
-                });
-        });
-
-        depositarBtn.addEventListener('click', () => {
-            const valor = prompt('Digite o valor a depositar:');
-            if (valor) {
-                fetch('/depositar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ valor: parseFloat(valor) })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erro na requisição: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    resultadoDiv.textContent = data.success ? `Depósito realizado. Novo saldo: R$ ${data.saldo}` : data.message || 'Erro ao depositar.';
-                })
-                .catch(error => {
-                    console.error('Erro na requisição:', error);
-                    resultadoDiv.textContent = 'Erro ao depositar.';
-                });
-            }
-        });
-
-        sacarBtn.addEventListener('click', () => {
-            const valor = prompt('Digite o valor a sacar:');
-            if (valor) {
-                fetch('/sacar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ valor: parseFloat(valor) })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erro na requisição: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    resultadoDiv.textContent = data.success ? `Saque realizado. Novo saldo: R$ ${data.saldo}` : data.message || 'Erro ao sacar.';
-                })
-                .catch(error => {
-                    console.error('Erro na requisição:', error);
-                    resultadoDiv.textContent = 'Erro ao sacar.';
-                });
-            }
-        });
-    </script>
+    <a href="/logout">Sair</a>
+    <script src="{{ url_for('static', filename='websocket.js') }}"></script>
 </body>
 </html>

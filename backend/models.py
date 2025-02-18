@@ -1,20 +1,17 @@
-from . import db
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy.orm import relationship
+from backend.database import Base
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
-    account = db.relationship('Account', backref='user', uselist=False)
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+    account = relationship("Account", uselist=False, back_populates="user")
 
-    def __init__(self, id=None, username=username, password=None):
-        self.id = id
-        self.username = username
-        if password is not None:
-            self.password = generate_password_hash(password)
-
-class Account(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    balance = db.Column(db.Float, default=0.0)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+class Account(Base):
+    __tablename__ = 'accounts'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    balance = Column(Float, default=0.0)
+    user = relationship("User", back_populates="account")

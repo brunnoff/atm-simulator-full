@@ -1,84 +1,110 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, session, jsonify
-from flask_login import login_user, login_required, logout_user, current_user
-from .models import User, Account
-from .database import get_user, add_user, get_account_by_user_id, update_account_balance, create_account
-from werkzeug.security import check_password_hash
+from flask import render_template, request, redirect, url_for, session, jsonify, flash
+from backend.database import SessionLocal
+from backend.models import User, Account
+from backend.utils import check_balance
+from flask_socketio import emit
 
-auth = Blueprint('auth', __name__)
+def get_db_session():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@auth.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = get_user(username)
-        if user and check_password_hash(user.password, password):
-            login_user(user)
+def configure_routes(app, socketio):
+    @app.route('/')
+    def index():
+        return render_template('index.html')
 
-            # Verifique se o usuário já tem uma conta
-            account = get_account_by_user_id(user.id)
-            if not account:
-                create_account(user.id)  # Crie a conta se não existir
+    @app.route("/register", methods=["GET", "POST"])
+    def register():
+        if request.method == "POST":
+            username = request.form['username']
+            password = request.form['password']
+            db = next(get_db_session())
+            existing_user = db.query(User).filter_by(username=username).first()
+            if existing_user:
+                flash("Usuário já existe!")
+                return redirect(url_for('register'))
+            new_user = User(username=username, password=password)
+            db.add(new_user)
+            account = Account(user_id=new_user.id, balance=0.0)
+            db.add(account)
+            db.commit()
+            flash("Registro bem-sucedido! Faça login para continuar.")
+            return redirect(url_for('login'))
+        return render_template('register.html')
 
-            return redirect(url_for('auth.dashboard'))
-        else:
-            flash('Credenciais inválidas. Tente novamente.')
-    return render_template('login.html')
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            username = request.form['username']
+            password = request.form['password']
+            db = next(get_db_session())
+            user = db.query(User).filter_by(username=username, password=password).first()
+            if user:
+                session['user_id'] = user.id
+                return redirect(url_for('dashboard'))
+            flash("Credenciais inválidas")
+            return redirect(url_for('login'))
+        return render_template('login.html')
 
-@auth.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if get_user(username):
-            flash('Usuário já existe.')
-        else:
-            add_user(username, password)
-            user = get_user(username)  # Obtém o usuário após o registro
-            create_account(user.id)  # Cria a conta para o usuário
-            flash('Usuário registrado com sucesso.')
-            return redirect(url_for('auth.login'))
-    return render_template('register.html')
+    @app.route('/dashboard')
+    def dashboard():
+        if 'user_id' in session:
+            db = next(get_db_session())
+            user = db.query(User).get(session['user_id'])
+            if user.account is None:
+                account = Account(user_id=user.id, balance=0.0)
+                db.add(account)
+                db.commit()
+            return render_template('dashboard.html', user=user)
+        return redirect(url_for('login'))
 
-@auth.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('auth.login'))
+    @app.route('/logout')
+    def logout():
+        session.pop('user_id', None)
+        return redirect(url_for('login'))
 
-@auth.route('/dashboard') # Rota para o dashboard (precisa existir)
-@login_required
-def dashboard():
-    return render_template('dashboard.html')
+    @app.route('/withdraw', methods=['POST'])
+    def withdraw():
+        if 'user_id' in session:
+            db = next(get_db_session())
+            user = db.query(User).get(session['user_id'])
+            if user.account is None:
+                flash("Conta não encontrada!")
+                return redirect(url_for('dashboard'))
+            amount = float(request.form['amount'])
+            if check_balance(user.account, amount):
+                user.account.balance -= amount
+                db.commit()
+                socketio.emit('update_balance', {'balance': user.account.balance})
+                flash("Saque realizado com sucesso!")
+                return redirect(url_for('dashboard'))  # Redireciona para a dashboard
+            else:
+                flash("Saldo insuficiente!")
+                return redirect(url_for('dashboard'))
+        flash("Não autorizado!")
+        return redirect(url_for('login'))
+    
+    @app.route('/deposit', methods=['POST'])
+    def deposit():
+        if 'user_id' in session:
+            db = next(get_db_session())
+            user = db.query(User).get(session['user_id'])
+            if user.account is None:
+                flash("Conta não encontrada!")
+                return redirect(url_for('dashboard'))
+            amount = float(request.form['amount'])
+            user.account.balance += amount
+            db.commit()
+            socketio.emit('update_balance', {'balance': user.account.balance})
+            flash("Depósito realizado com sucesso!")
+            return redirect(url_for('dashboard'))  # Redireciona para a dashboard
+        flash("Não autorizado!")
+        return redirect(url_for('login'))
 
-@auth.route('/consultar_saldo')
-@login_required
-def consultar_saldo():
-    account = get_account_by_user_id(current_user.id)
-    if account:
-        return jsonify({'success': True, 'saldo': account.balance})
-    return jsonify({'success': False, 'message': 'Conta não encontrada'})
-
-@auth.route('/depositar', methods=['POST'])
-@login_required
-def depositar():
-    data = request.get_json()
-    valor = data.get('valor')
-    account = get_account_by_user_id(current_user.id)
-    if account and valor > 0:
-        account.balance += valor
-        update_account_balance(account.id, account.balance)
-        return jsonify({'success': True, 'saldo': account.balance})
-    return jsonify({'success': False, 'message': 'Erro ao depositar'})
-
-@auth.route('/sacar', methods=['POST'])
-@login_required
-def sacar():
-    data = request.get_json()
-    valor = data.get('valor')
-    account = get_account_by_user_id(current_user.id)
-    if account and valor > 0 and valor <= account.balance:
-        account.balance -= valor
-        update_account_balance(account.id, account.balance)
-        return jsonify({'success': True, 'saldo': account.balance})
-    return jsonify({'success': False, 'message': 'Erro ao sacar'})
+    @socketio.on('message')
+    def handle_message(message):
+        print('Mensagem recebida:', message)
+        socketio.emit('response', {'data': 'Mensagem recebida pelo servidor!'})

@@ -1,18 +1,10 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const socket = io();
-
-    socket.on('connect', function() {
-        console.log('Conectado ao servidor WebSocket');
-    });
-
-    socket.on('notification', function(message) {
-        const notificationsDiv = document.getElementById('notifications');
-        const newNotification = document.createElement('p');
-        newNotification.textContent = message;
-        notificationsDiv.appendChild(newNotification);
-    });
-
-    socket.on('disconnect', function() {
-        console.log('Desconectado do servidor WebSocket');
-    });
+const socket = io.connect('http://' + document.domain + ':' + location.port);
+socket.on('connect', () => {
+    console.log('Conectado ao servidor WebSocket');
+});
+socket.on('update_balance', (data) => {
+    alert('Novo saldo: R$ ' + data.balance);
+});
+socket.on('response', (data) => {
+    console.log(data.data);
 });
