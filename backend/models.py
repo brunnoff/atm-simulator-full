@@ -7,6 +7,8 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    security_question = Column(String, nullable=False)  # Novo campo
+    security_answer = Column(String, nullable=False)  # Novo campo
     account = relationship("Account", uselist=False, back_populates="user")
 
 class Account(Base):
